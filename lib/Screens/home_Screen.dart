@@ -56,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   } else if (!snapshot.hasData) {
                     return Center(child: Text('No data available'));
                   } else {
+                    print(snapshot.data![0].weather![0].icon.toString());
                     return Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -122,13 +123,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       padding: const EdgeInsets.all(20),
                                       child: Row(
                                         children: [
-                                          // Image.network(
-                                          //   'https://openweathermap.org/img/wn/${worker.iconWeather.toString()}@2x.png',
-                                          // ),
+                                          Image.network(
+                                            'https://openweathermap.org/img/wn/${snapshot.data![0].weather![0].icon.toString()}@2x.png',
+                                          ),
                                           Column(
                                             children: [
                                               Text(
-                                                worker.description.toString(),
+                                                snapshot.data![0].sys!.country
+                                                    .toString(),
                                                 style: const TextStyle(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
