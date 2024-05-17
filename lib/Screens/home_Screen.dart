@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:weather_app/Model/weather_model.dart';
-import 'package:weather_app/working_Class.dart';
 import 'package:weather_icons/weather_icons.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -15,6 +15,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<weather_model> model_List = [];
+  final TextEditingController _controller = TextEditingController();
+  String _currentCity = 'Karachi';
 
   Future<List<weather_model>> get_ListData(String location) async {
     final response = await http.get(Uri.parse(
@@ -29,12 +31,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Working worker = Working('london');
+  double kelvinToCalcius(double kelvin) {
+    return kelvin - 273.15;
+  }
 
-  @override
-  void initState() {
-    super.initState();
-    get_ListData('karachi');
+  double kmPerHourAir(double speed) {
+    return speed / 2.777;
   }
 
   @override
@@ -45,24 +47,91 @@ class _HomeScreenState extends State<HomeScreen> {
         body: SingleChildScrollView(
           child: Column(
             children: [
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: [
+                      Colors.blue.shade800,
+                      Colors.blue.shade300,
+                    ])),
+                child: TextFormField(
+                  controller: _controller,
+                  key: const Key('searchField'),
+                  cursorColor: Colors.black,
+                  decoration: InputDecoration(
+                    fillColor: Colors.blue.shade100,
+                    filled: true,
+                    contentPadding: const EdgeInsets.all(10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
+                    hintText: 'Enter your City',
+                    hintStyle:
+                        const TextStyle(color: Colors.black, fontSize: 17),
+                    suffixIcon: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _currentCity = _controller.text;
+                        });
+                      },
+                      child: const Icon(
+                        Icons.search,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               FutureBuilder(
-                future: get_ListData('karachi'),
+                future: get_ListData(_currentCity),
                 builder:
                     (context, AsyncSnapshot<List<weather_model>> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   } else if (!snapshot.hasData) {
-                    return Center(child: Text('No data available'));
+                    return Shimmer.fromColors(
+                        baseColor: Colors.grey.shade300,
+                        highlightColor: Colors.grey.shade800,
+                        child: Column(
+                          children: [
+                            ListView.builder(itemBuilder: (context, index) {
+                              return ListTile(
+                                leading: Container(
+                                  height: 50,
+                                  width: 50,
+                                  color: Colors.white,
+                                ),
+                                title: Container(
+                                  height: 10,
+                                  width: 89,
+                                  color: Colors.white,
+                                ),
+                                subtitle: Container(
+                                  height: 10,
+                                  width: 89,
+                                  color: Colors.white,
+                                ),
+                              );
+                            })
+                          ],
+                        ));
                   } else {
-                    print(snapshot.data![0].weather![0].icon.toString());
                     return Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
+                          end: Alignment.topLeft,
                           colors: [
                             Colors.blue.shade800,
                             Colors.blue.shade300,
@@ -77,45 +146,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               SizedBox(
                                 height:
-                                    MediaQuery.of(context).size.height * 0.02,
-                              ),
-                              TextFormField(
-                                key: const Key('searchField'),
-                                cursorColor: Colors.black,
-                                decoration: InputDecoration(
-                                  fillColor: Colors.white,
-                                  filled: true,
-                                  contentPadding: const EdgeInsets.all(10),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(50),
-                                    borderSide:
-                                        const BorderSide(color: Colors.black),
-                                  ),
-                                  focusedBorder: const OutlineInputBorder(
-                                    borderSide: BorderSide(color: Colors.black),
-                                  ),
-                                  hintText: 'Enter your City',
-                                  hintStyle: const TextStyle(
-                                      color: Colors.black, fontSize: 17),
-                                  suffixIcon: InkWell(
-                                    onTap: () {
-                                      print('search ho jahe ga');
-                                    },
-                                    child: const Icon(
-                                      Icons.search,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.02,
+                                    MediaQuery.of(context).size.height * 0.001,
                               ),
                               Row(
                                 children: [
                                   Expanded(
                                     child: Container(
+                                      height: 120,
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
                                         color: Colors.white.withOpacity(0.5),
@@ -126,19 +163,36 @@ class _HomeScreenState extends State<HomeScreen> {
                                           Image.network(
                                             'https://openweathermap.org/img/wn/${snapshot.data![0].weather![0].icon.toString()}@2x.png',
                                           ),
+                                          SizedBox(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.05,
+                                          ),
                                           Column(
                                             children: [
                                               Text(
-                                                snapshot.data![0].sys!.country
+                                                snapshot.data![0].weather![0]
+                                                    .description
                                                     .toString(),
                                                 style: const TextStyle(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
-                                              const Text(
-                                                'Pakistan',
-                                                style: TextStyle(
+                                              SizedBox(
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height *
+                                                    0.02,
+                                              ),
+                                              Text(
+                                                _currentCity +
+                                                    " \t" +
+                                                    snapshot
+                                                        .data![0].sys!.country
+                                                        .toString(),
+                                                style: const TextStyle(
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -159,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Expanded(
                                     child: Container(
-                                      height: 220,
+                                      height: 180,
                                       decoration: BoxDecoration(
                                         color: Colors.white.withOpacity(0.5),
                                         borderRadius: BorderRadius.circular(10),
@@ -177,9 +231,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 MainAxisAlignment.center,
                                             children: [
                                               Text(
-                                                snapshot.data![0].main!.temp
-                                                    .toString()
-                                                    .substring(0, 4),
+                                                snapshot.data![0].main!.temp !=
+                                                        null
+                                                    ? kelvinToCalcius(snapshot
+                                                            .data![0]
+                                                            .main!
+                                                            .temp!)
+                                                        .toStringAsFixed(2)
+                                                        .substring(0, 4)
+                                                    : 'N/A',
                                                 style: const TextStyle(
                                                   fontSize: 60,
                                                   fontWeight: FontWeight.bold,
@@ -208,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: [
                                   Expanded(
                                     child: Container(
-                                      height: 150,
+                                      height: 140,
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
                                         color: Colors.white.withOpacity(0.5),
@@ -229,8 +289,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 height: 20,
                                               ),
                                               Text(
-                                                snapshot.data![0].wind!.speed
-                                                    .toString(),
+                                                snapshot.data![0].wind!.speed !=
+                                                        null
+                                                    ? kmPerHourAir(snapshot
+                                                            .data![0]
+                                                            .wind!
+                                                            .speed!)
+                                                        .toStringAsFixed(2)
+                                                        .substring(0, 4)
+                                                    : 'N/A',
                                                 style: const TextStyle(
                                                   fontSize: 30,
                                                   fontWeight: FontWeight.bold,
@@ -255,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   Expanded(
                                     child: Container(
-                                      height: 150,
+                                      height: 140,
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
                                         color: Colors.white.withOpacity(0.5),
